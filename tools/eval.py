@@ -72,12 +72,13 @@ def det_infer_net_loader(net, dataloader, infer_patch_size=8, as_rpn=False):
             if 'patches_img' in results.keys():
                 t.set_description(f'inferring on {len(results[img_key])} patches ...')
                 for start in range(0, len(results[img_key]), infer_patch_size):
-                    tensor_data = {'img': results[img_key][start: start + infer_patch_size].cuda(),
-                                   'img_meta': None}
-                    for k, v in results.items():
-                        if k not in ['patches_img', 'img_meta']:
-                            tensor_data[k.replace('patches_', '')] = v[start: start + infer_patch_size].cuda()
                     with autocast():
+                        tensor_data = {'img': results[img_key][start: start + infer_patch_size].cuda(),
+                                       'img_meta': None}
+                        for k, v in results.items():
+                            if k not in ['patches_img', 'img_meta']:
+                                tensor_data[k.replace('patches_', '')] = v[start: start + infer_patch_size].cuda()
+
                         with torch.no_grad():
                             if hasattr(net, 'rpn_head') and as_rpn:
                                 net_result = net.forward_infer(tensor_data, rpn=True)
@@ -180,6 +181,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', default='')
     parser.add_argument('--fold', type=int, default=-1)
+    parser.add_argument('--batch', type=int, default=-1)
     parser.add_argument('--exclude', help='fold as exclude', action='store_true', default=False)
     parser.add_argument('--epoch', type=int, default=10)
     parser.add_argument('--dataset', type=str, default='valid_infer')
@@ -203,6 +205,8 @@ if __name__ == '__main__':
         cfg.work_dir = osp.join(cfg.work_dir, cfg.module_name)
     else:
         cfg.work_dir = osp.join(cfg.work_dir, cfg.module_name, str(args.fold))
+    if args.batch:
+        cfg.data.imgs_per_gpu = args.batch
     checkpoint = cfg.work_dir + f'/epoch_{args.epoch}.pth'
     if args.rpn:
         infer_results_dir = osp.join(cfg.work_dir, f'{args.dataset}_results_{args.epoch}ep_rpn')

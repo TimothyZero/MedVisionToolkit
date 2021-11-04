@@ -50,9 +50,11 @@ class ROIHead(BaseRoIHead):
 
     def forward_infer(self,
                       multi_level_features,
-                      batch_proposals):
+                      batch_proposals,
+                      batch_anchor_id):
         return self.bbox_head.forward_infer(multi_level_features,
-                                            batch_proposals)
+                                            batch_proposals,
+                                            batch_anchor_id)
 
     def metric(self, results, ground_truth):
         return self.bbox_head.metric(results, ground_truth)

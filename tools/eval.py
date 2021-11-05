@@ -181,7 +181,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', default='')
     parser.add_argument('--fold', type=int, default=-1)
-    parser.add_argument('--batch', type=int, default=-1)
+    parser.add_argument('--batch', type=int, default=0)
     parser.add_argument('--exclude', help='fold as exclude', action='store_true', default=False)
     parser.add_argument('--epoch', type=int, default=10)
     parser.add_argument('--dataset', type=str, default='valid_infer')
@@ -191,13 +191,13 @@ def parse_args():
 
 
 if __name__ == '__main__':
-    args = parse_args()
-    # os.chdir('../')
-    # args.config = 'projects/aneurysm/configs/cfg_baseline_v3_two_v3.py'
-    # # args.fold = 0
-    # args.epoch = 190
-    # args.dataset = 'valid_infer'
-    # args.rpn = True
+    # args = parse_args()
+    # args.config = 'projects/LUNA2016/configs/cfg_v1_one_v1.py'
+    # args.fold = 0
+    # args.epoch = 150
+    # args.dataset = 'infer'
+    # # args.rpn = True
+    # os.chdir('../../MedVisionProjects')
 
     cfg = Config.fromfile(args.config)
     cfg.gpus = 1
@@ -205,7 +205,7 @@ if __name__ == '__main__':
         cfg.work_dir = osp.join(cfg.work_dir, cfg.module_name)
     else:
         cfg.work_dir = osp.join(cfg.work_dir, cfg.module_name, str(args.fold))
-    if args.batch:
+    if args.batch > 0:
         cfg.data.imgs_per_gpu = args.batch
     checkpoint = cfg.work_dir + f'/epoch_{args.epoch}.pth'
     if args.rpn:

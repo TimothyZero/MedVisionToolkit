@@ -32,9 +32,9 @@ class RPNHead(AnchorHead):
             self.build_act(inplace=True),
             self.build_conv(self.dim, self.feat_channels, self.feat_channels, kernel_size=3, padding=1),
             self.build_act(inplace=True),
-            self.build_conv(self.dim, self.feat_channels, self.feat_channels, kernel_size=1, padding=0),
+            self.build_conv(self.dim, self.feat_channels, self.feat_channels, kernel_size=3, padding=1),
             self.build_act(inplace=True),
-            self.build_conv(self.dim, self.feat_channels, self.feat_channels, kernel_size=1, padding=0),
+            self.build_conv(self.dim, self.feat_channels, self.feat_channels, kernel_size=3, padding=1),
         )
 
         self.act = self.build_act(inplace=True)

@@ -33,10 +33,10 @@ class SubnetReg(ComponentModule):
         self.conv2 = self.build_conv(dim, feature_size, feature_size, kernel_size=3, padding=1)
         self.act2 = self.build_act(self.act_cfg)
 
-        self.conv3 = self.build_conv(dim, feature_size, feature_size, kernel_size=1, padding=0)
+        self.conv3 = self.build_conv(dim, feature_size, feature_size, kernel_size=3, padding=1)
         self.act3 = self.build_act(self.act_cfg)
 
-        self.conv4 = self.build_conv(dim, feature_size, feature_size, kernel_size=1, padding=0)
+        self.conv4 = self.build_conv(dim, feature_size, feature_size, kernel_size=3, padding=1)
         self.act4 = self.build_act(self.act_cfg)
 
         self.output = self.build_conv(dim, feature_size, num_base_anchors * 2 * dim, kernel_size=1, padding=0)
@@ -72,10 +72,10 @@ class SubnetCls(ComponentModule):
         self.conv2 = self.build_conv(dim, feature_size, feature_size, kernel_size=3, padding=1)
         self.act2 = self.build_act(self.act_cfg)
 
-        self.conv3 = self.build_conv(dim, feature_size, feature_size, kernel_size=1, padding=0)
+        self.conv3 = self.build_conv(dim, feature_size, feature_size, kernel_size=3, padding=1)
         self.act3 = self.build_act(self.act_cfg)
 
-        self.conv4 = self.build_conv(dim, feature_size, feature_size, kernel_size=1, padding=0)
+        self.conv4 = self.build_conv(dim, feature_size, feature_size, kernel_size=3, padding=1)
         self.act4 = self.build_act(self.act_cfg)
 
         self.output = self.build_conv(dim, feature_size, num_base_anchors * num_classes, kernel_size=1, padding=0)

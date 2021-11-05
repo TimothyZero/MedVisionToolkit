@@ -15,7 +15,6 @@
 from medtk.model.heads_det.dense_heads.deeplung_head import DeepLungHead
 from medtk.model.heads_det.dense_heads.retina_head import RetinaHead
 from medtk.model.heads_det.dense_heads.fcos_head import FCOSHead
-from medtk.model.heads_det.dense_heads.vanilla_retina_head import VanillaRetinaHead
 from medtk.model.heads_det.dense_heads.rpn_head import RPNHead
 
 from medtk.model.heads_det.roi_heads.bbox_heads import *

@@ -191,7 +191,7 @@ def parse_args():
 
 
 if __name__ == '__main__':
-    # args = parse_args()
+    args = parse_args()
     # args.config = 'projects/LUNA2016/configs/cfg_v1_one_v1.py'
     # args.fold = 0
     # args.epoch = 150

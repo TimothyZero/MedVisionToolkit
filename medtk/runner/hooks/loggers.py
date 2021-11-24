@@ -151,6 +151,7 @@ class TextLoggerHook(LoggerHook):
         log_dict['count'] = runner.iter + 1
         if mode == 'train':
             log_dict['time'] = runner.log_buffer.output['time']
+            log_dict['network_time'] = runner.log_buffer.output['network_time']
             log_dict['data_time'] = runner.log_buffer.output['data_time']
             # statistic memory
             log_dict['memory'] = None

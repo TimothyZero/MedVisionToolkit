@@ -99,19 +99,26 @@ def iouNd_pytorch(anchors: torch.Tensor,
 
 def distNd_pytorch(anchors: torch.Tensor,
                    targets: torch.Tensor,
-                   dim=None) -> torch.Tensor:
+                   dim=None,
+                   mode='abs_dist') -> torch.Tensor:
     """
     :param anchors:  [N, (y1,x1,y2,x2) | (y1,x1,z1,y2,x2,z2)]
     :param targets:  [M, (y1,x1,y2,x2) | (y1,x1,z1,y2,x2,z2)]
     :param dim: dimension of bbox
+    :param mode: mode of dist
     :return:   IoU:  [N,M]
     """
+    assert mode in ['abs_dist', 'rel_dist'], f'Unsupported mode {mode}'
+
     if not dim:
         dim = targets.shape[-1] // 2
         assert dim in (2, 3)
 
     anchors = anchors[..., :2 * dim]
     targets = targets[..., :2 * dim]
+
+    if mode == 'rel_dist':
+        shape = shapeNd_pytorch(targets).unsqueeze(0)  # [1, M, dim]
 
     # expand dim
     anchors = torch.unsqueeze(anchors, dim=1)  # [N, 1, 2*dim]
@@ -122,10 +129,14 @@ def distNd_pytorch(anchors: torch.Tensor,
     targets = (targets[..., :dim] + targets[..., dim:]) / 2  # [1, M, dim]
 
     # distance
-    distance = torch.pow(anchors - targets, 2).float()  # [N, M, dim]
-    distance = torch.sqrt(torch.sum(distance, dim=-1))
+    distance = anchors - targets  # [N, M, dim]
 
-    return distance
+    if mode == 'abs_dist':
+        distance = torch.sqrt(torch.sum(torch.pow(distance, 2).float(), dim=-1))  # [N, M]
+        return distance
+    elif mode == 'rel_dist':
+        distance = torch.sqrt(torch.sum(torch.pow(2 * distance / shape, 2).float(), dim=-1))  # [N, M]
+        return distance
 
 
 def shapeNd_pytorch(anchors: torch.Tensor,
@@ -133,7 +144,7 @@ def shapeNd_pytorch(anchors: torch.Tensor,
     """
     :param anchors:  [N, (y1,x1,y2,x2) | (y1,x1,z1,y2,x2,z2)]
     :param dim: dimension of bbox
-    :return:   IoU:  [N,M]
+    :return:   shape:  [N, dim]
     """
     if not dim:
         dim = anchors.shape[-1] // 2

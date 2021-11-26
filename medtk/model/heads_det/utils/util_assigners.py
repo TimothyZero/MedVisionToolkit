@@ -287,9 +287,6 @@ class DistAssigner:
             anchors = torch.unsqueeze(anchors, dim=1)  # [N, 1, 2*dim]
             targets = torch.unsqueeze(targets, dim=0)  # [1, M, 2*dim]
 
-            to_border = anchors - targets
-            inside_valid = torch.all(to_border[..., :dim] >= 0, dim=-1) * torch.all(to_border[..., dim:] <= 0, dim=-1)
-
             targets_shape = targets[..., dim:] - targets[..., :dim]  # [1, M, dim]
 
             anchors = (anchors[..., :dim] + anchors[..., dim:]) / 2  # [N, 1, dim]
@@ -458,8 +455,153 @@ class UniformAssigner:
         return assigned_labels, assigned_bboxes
 
 
+class Assigner:
+    def __init__(self,
+                 metrics: list = ['iou'],  # combines of iou, iof, giou, diou, abs_dist, rel_dist
+                 method: str = 'all',  # one of all, max, uniform_K, atss
+                 pos_criteria: str = "lambda x: 0.5 <= x['iou']",
+                 neg_criteria: str = "lambda x: x['iou'] < 0.3",
+                 min_pos_criteria: str = "lambda x: 0.2 <= x['iou']",
+                 match_low_quality: bool = False,
+                 num_neg: int = None):
+        assert set(metrics).issubset({'iou', 'iof', 'giou', 'diou', 'abs_dist', 'rel_dist'})
+        assert method in ['all', 'max'] or method.startswith('uniform_')
+
+        self.metrics = metrics
+        self.method = method
+        self.pos_criteria = eval(pos_criteria)
+        self.neg_criteria = eval(neg_criteria)
+        self.min_pos_criteria = eval(min_pos_criteria)
+        self._pos_criteria = pos_criteria
+        self._neg_criteria = neg_criteria
+        self._min_pos_criteria = min_pos_criteria
+        self.match_low_quality = match_low_quality
+        self.num_neg = num_neg
+
+    def __repr__(self):
+        repr_str = self.__class__.__name__
+        repr_str += f'(metrics={self.metrics}, method={self.method}, ' \
+                    f'pos_criteria="{self._pos_criteria}", ' \
+                    f'neg_criteria="{self._neg_criteria}", ' \
+                    f'min_pos_criteria="{self._min_pos_criteria}", ' \
+                    f'match_low_quality={self.match_low_quality}, num_neg={self.num_neg})'
+        return repr_str
+
+    def assign(self,
+               bboxes: torch.Tensor,
+               gt_bboxes: torch.Tensor,
+               gt_labels: torch.Tensor):
+        """
+        References: mmdetection
+        Args:
+            bboxes: with shape [N, 2dim]
+            gt_bboxes: with shape [M, 2dim]
+            gt_labels: with shape [M]
+
+        Returns:
+            assigned_gt_indices: assign each anchor with the index of matched gt bbox
+                -1: ignore
+                 0: negative
+                +n: matched index of gt_bboxes, 1 based
+            assigned_labels: assign class to each anchor
+                -1: ignore
+                 0: negative
+                +n: matched classes, 1 based
+            assigned_bboxes: assigned gt bboxes
+        """
+        assert bboxes.ndim == gt_bboxes.ndim
+        assert gt_labels.dtype == torch.long
+        num_bboxes, num_gts = bboxes.shape[0], gt_bboxes.shape[0]
+
+        if num_gts == 0:
+            # No truth, assign everything to background
+            assigned_labels = torch.zeros(num_bboxes).long().to(bboxes.device)
+            assigned_bboxes = torch.zeros_like(bboxes).to(bboxes.device)
+            return assigned_labels, assigned_bboxes
+
+        metrics = dict(
+            anchors_metric_max={},
+            anchors_metric_argmax={},
+            gt_metric_max={},
+            gt_metric_argmax={},
+        )
+        for metric in self.metrics:
+            if metric in ['iou', 'iof', 'giou', 'diou']:
+                # 0. calculate iou
+                metric_anchor_gt = iouNd_pytorch(bboxes, gt_bboxes, mode=metric)  # [num_bboxes, num_gts]
+            elif metric in ['abs_dist', 'rel_dist']:
+                # 0. calculate dist
+                metric_anchor_gt = distNd_pytorch(bboxes, gt_bboxes, mode=metric)  # [num_bboxes, num_gts]
+
+            else:
+                raise NotImplementedError
+
+            metrics[metric] = metric_anchor_gt
+
+        pos_indices, pos_indices_argmax = torch.max(self.pos_criteria(metrics), dim=1)
+        neg_indices, neg_indices_argmax = torch.min(self.neg_criteria(metrics), dim=1)
+
+        if self.method in ['all', 'max']:
+            # 1. assign -1 to each bboxes
+            assigned_gt_indices = bboxes.new_ones(bboxes.shape[0]).long() * -1
+            # 2. assign negative: below the negative threshold are set to be 0
+            assigned_gt_indices[neg_indices] = 0
+            if self.method == 'max':
+                # 3. assign positive: only max iou is assigned
+                assigned_gt_indices[pos_indices] = -1
+            elif self.method == 'all':
+                # 3. assign positive: above positive IoU threshold
+                assigned_gt_indices[pos_indices] = pos_indices_argmax[pos_indices] + 1
+        elif self.method.startswith('uniform_'):
+            match_times = int(self.method.replace('uniform_', ''))
+            if 'iou' in self.metrics:
+                grid_overlaps = metrics['iou']
+            else:
+                grid_overlaps = iouNd_pytorch(bboxes, gt_bboxes)  # num_bboxes, num_gts
+            grid_max_overlaps, grid_iou_argmax = grid_overlaps.max(dim=1)  # num_bboxes
+            index_grid = torch.topk(- grid_overlaps, k=match_times, dim=0, largest=False)[1]  # [K, M]
+
+            # 1. assign -1 to each bboxes
+            assigned_gt_indices = bboxes.new_ones(bboxes.shape[0]).long() * -1
+            # 2. assign positive: bboxes in topk and iou match pos_criteria
+            for m in range(num_gts):
+                assigned_gt_indices[index_grid[:, m][self.pos_criteria(metrics)[index_grid[:, m], m]]] = m + 1
+
+            # 3. assign negative: bboxes not in topk and iou match neg_criteria
+            assigned_gt_indices[assigned_gt_indices == -1] = 1 * (
+                neg_indices[assigned_gt_indices == -1]) - 1
+        else:
+            raise NotImplementedError
+
+        # 4. assign low quality gt to best anchors
+        if self.match_low_quality:
+            for i in range(num_gts):
+                gt_min_pos_indices, gt_min_pos_indices_argmax = torch.max(self.min_pos_criteria(metrics), dim=0)
+                if gt_min_pos_indices[i]:
+                    # maybe multi assign
+                    # max_iou_indices = iou[:, i] == gt_iou_max[i]
+                    # assigned_gt_indices[max_iou_indices] = i + 1
+                    assigned_gt_indices[gt_min_pos_indices_argmax[i]] = i + 1
+
+        pos_indices = torch.where(assigned_gt_indices > 0)[0]
+        neg_indices = torch.where(assigned_gt_indices == 0)[0]
+
+        if self.num_neg is not None:
+            neg_indices = neg_indices[torch.randperm(neg_indices.numel(), device=neg_indices.device)[:self.num_neg]]
+
+        assigned_labels = bboxes.new_ones(bboxes.shape[0]).long() * -1
+        assigned_bboxes = torch.ones_like(bboxes) * -1.0
+        if pos_indices.numel() > 0:
+            assigned_labels[pos_indices] = gt_labels[assigned_gt_indices[pos_indices] - 1]
+            assigned_bboxes[pos_indices] = gt_bboxes[assigned_gt_indices[pos_indices] - 1]
+        assigned_labels[neg_indices] = 0
+
+        return assigned_labels, assigned_bboxes
+
+
 if __name__ == "__main__":
     import numpy as np
+    np.set_printoptions(suppress=True)
 
     anchors = torch.tensor(np.array([[2.0, 2.0, 4.0, 4.0],
                                      [2.0, 2.0, 5.0, 4.0],
@@ -491,6 +633,12 @@ if __name__ == "__main__":
 
     iou = iouNd_pytorch(anchors, gt_bboxes, mode='iou')
     print(iou.cpu().numpy())
+    iof = iouNd_pytorch(anchors, gt_bboxes, mode='iof')
+    print(iof.cpu().numpy())
+    dist = distNd_pytorch(anchors, gt_bboxes, mode='abs_dist')
+    print(dist.cpu().numpy())
+    dist = distNd_pytorch(anchors, gt_bboxes, mode='rel_dist')
+    print(dist.cpu().numpy())
 
     # assigner = UniformAssigner(pos_ignore_thr=0.3, neg_ignore_thr=0.7, match_times=4, min_pos_iou=0.2,
     #                            match_low_quality=True)
@@ -499,13 +647,24 @@ if __name__ == "__main__":
     # print(assigned_labels)
     # print(torch.cat([anchors, assigned_bboxes], dim=1))
 
-    # assigner = MaxIoUAssigner(pos_iou_thr=0.7, neg_iou_thr=0.3, min_pos_iou=0.2, match_low_quality=True)
+    # assigner = MaxIoUAssigner(pos_iou_thr=0.5, neg_iou_thr=0.3, min_pos_iou=0.2, match_low_quality=True)
     # assigned_labels, assigned_bboxes = assigner.assign(anchors, gt_bboxes=gt_bboxes, gt_labels=gt_labels)
     # print(assigner)
     # print(assigned_labels)
     # print(torch.cat([anchors, assigned_bboxes], dim=1))
 
     # assigner = IoUAssigner(pos_iou_thr=0.5, neg_iou_thr=0.3, min_pos_iou=0.2, match_low_quality=True)
+    # assigned_labels, assigned_bboxes = assigner.assign(anchors, gt_bboxes=gt_bboxes, gt_labels=gt_labels)
+    # print(assigner)
+    # print(assigned_labels)
+    # print(torch.cat([anchors, assigned_bboxes], dim=1))
+
+    # assigner = Assigner(metrics=['iou', 'iof', 'rel_dist'],
+    #                     method='uniform_4',
+    #                     pos_criteria="lambda x: (0.5 <= x['iou']) * (0.2 < x['iof']) * (x['rel_dist'] < 0.9)",
+    #                     neg_criteria="lambda x: x['iou'] < 0.3",
+    #                     min_pos_criteria="lambda x: 0.2 <= x['iou']",
+    #                     match_low_quality=True)
     # assigned_labels, assigned_bboxes = assigner.assign(anchors, gt_bboxes=gt_bboxes, gt_labels=gt_labels)
     # print(assigner)
     # print(assigned_labels)

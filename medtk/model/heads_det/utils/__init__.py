@@ -15,7 +15,7 @@
 # -*- coding:utf-8 -*-
 
 from medtk.model.heads_det.utils.util_anchors import AnchorGenerator, PointGenerator
-from medtk.model.heads_det.utils.util_assigners import IoUAssigner, MaxIoUAssigner, DistAssigner, UniformAssigner
+from medtk.model.heads_det.utils.util_assigners import IoUAssigner, MaxIoUAssigner, DistAssigner, UniformAssigner, Assigner
 from medtk.model.heads_det.utils.util_bboxes import DeltaBBoxCoder, DistBBoxCoder
 from medtk.model.heads_det.utils.util_samplers import RandomSampler, OHEMSampler, HNEMSampler
 from medtk.model.heads_det.utils.util_extractors import SingleRoIExtractor, GenericRoIExtractor

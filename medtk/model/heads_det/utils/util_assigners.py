@@ -17,7 +17,7 @@ import torch
 from medtk.ops import iouNd_pytorch, distNd_pytorch
 
 
-class IoUAssigner:
+class IoUAssigner(torch.nn.Module):
     """
     pos_iou_thr
 
@@ -36,6 +36,7 @@ class IoUAssigner:
                  min_pos_iou: float = .0,
                  match_low_quality: bool = False,
                  num_neg: int = None):
+        super(IoUAssigner, self).__init__()
         self.pos_iou_thr = pos_iou_thr
         self.neg_iou_thr = neg_iou_thr
         self.min_pos_iou = min_pos_iou
@@ -126,13 +127,14 @@ class IoUAssigner:
         return assigned_labels, assigned_bboxes
 
 
-class MaxIoUAssigner:
+class MaxIoUAssigner(torch.nn.Module):
     def __init__(self,
                  pos_iou_thr: float,
                  neg_iou_thr: float,
                  min_pos_iou: float = .0,
                  match_low_quality: bool = False,
                  num_neg: int = None):
+        super(MaxIoUAssigner, self).__init__()
         self.pos_iou_thr = pos_iou_thr
         self.neg_iou_thr = neg_iou_thr
         self.min_pos_iou = min_pos_iou
@@ -227,12 +229,13 @@ class MaxIoUAssigner:
         return assigned_labels, assigned_bboxes
 
 
-class DistAssigner:
+class DistAssigner(torch.nn.Module):
     def __init__(self,
                  pos_dist_thr: float,
                  max_pos_dist: float = 0.8,
                  match_low_quality: bool = True,
                  num_neg: int = None):
+        super(DistAssigner, self).__init__()
         assert pos_dist_thr <= 1 and max_pos_dist <= 1
         self.pos_dist_thr = pos_dist_thr
         self.max_pos_dist = max_pos_dist
@@ -342,7 +345,7 @@ class DistAssigner:
         return assigned_labels, assigned_bboxes
 
 
-class UniformAssigner:
+class UniformAssigner(torch.nn.Module):
     """Uniform Matching between the anchors and gt boxes, which can achieve
     balance in positive anchors, and gt_bboxes_ignore was not considered for
     now.
@@ -360,6 +363,7 @@ class UniformAssigner:
                  min_pos_iou: float = .0,
                  match_low_quality: bool = False,
                  num_neg: int = None):
+        super(UniformAssigner, self).__init__()
         self.match_times = match_times
         self.pos_ignore_thr = pos_ignore_thr
         self.neg_ignore_thr = neg_ignore_thr
@@ -455,7 +459,7 @@ class UniformAssigner:
         return assigned_labels, assigned_bboxes
 
 
-class Assigner:
+class Assigner(torch.nn.Module):
     def __init__(self,
                  metrics: list = ['iou'],  # combines of iou, iof, giou, diou, abs_dist, rel_dist
                  method: str = 'all',  # one of all, max, uniform_K, atss
@@ -464,6 +468,7 @@ class Assigner:
                  min_pos_criteria: str = "lambda x: 0.2 <= x['iou']",
                  match_low_quality: bool = False,
                  num_neg: int = None):
+        super(Assigner, self).__init__()
         assert set(metrics).issubset({'iou', 'iof', 'giou', 'diou', 'abs_dist', 'rel_dist'})
         assert method in ['all', 'max'] or method.startswith('uniform_')
 

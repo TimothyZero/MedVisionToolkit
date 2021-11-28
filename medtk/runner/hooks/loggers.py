@@ -26,7 +26,7 @@ class TextLoggerHook(LoggerHook):
         self.json_log_path = osp.join(runner.work_dir,
                                       'logs/{}.log.json'.format(runner.timestamp))
         self.figure_log_path = osp.join(runner.work_dir,
-                                        'figs/{}.log.png'.format(runner.timestamp))
+                                        'logs/{}.log.png'.format(runner.timestamp))
 
     def _get_max_memory(self, runner):
         device = getattr(runner.model, 'output_device', None)
@@ -71,7 +71,10 @@ class TextLoggerHook(LoggerHook):
             ]:
                 continue
             if isinstance(val, float):
-                val = '{:.4f}'.format(val)
+                if 'num_' in name:
+                    val = '{:.0f}'.format(val)
+                else:
+                    val = '{:.4f}'.format(val)
             log_items.append('{}: {}'.format(name, val))
         log_str += ', '.join(log_items)
         if runner.mode == 'valid':
@@ -99,7 +102,6 @@ class TextLoggerHook(LoggerHook):
             return items
 
     def _plot_log(self, log_dict, runner):
-        return
         train_data, valid_data = OrderedDict(), OrderedDict()
         with open(self.json_log_path, 'r') as f:
             for line in f.readlines():
@@ -107,28 +109,24 @@ class TextLoggerHook(LoggerHook):
                 if json_log_line['mode'] == 'train':
                     count = json_log_line['count']
                     iter_data = {
-                        "reference": json_log_line['reference'],
-                        "loss"     : json_log_line['loss']
+                        "loss": json_log_line['loss']
                     }
                     train_data[count] = iter_data
                 elif json_log_line['mode'] == 'valid':
                     count = json_log_line['count']
                     iter_data = {
-                        "reference": json_log_line['reference']
+                        "loss": json_log_line['loss']
                     }
                     valid_data[count] = iter_data
 
         # plt.rcParams['font.family'] = 'SimHei'
-        plt.plot(list(train_data.keys()), [i['reference'] for i in train_data.values()], '-', label='train reference')
         plt.plot(list(train_data.keys()), [i['loss'] for i in train_data.values()], '-', label='train loss')
-        plt.plot(list(valid_data.keys()), [i['reference'] for i in valid_data.values()], '-', label='valid reference')
+        plt.plot(list(valid_data.keys()), [i['loss'] for i in valid_data.values()], '-', label='valid loss')
 
         plt.xlabel('iter')
         plt.ylabel('criterion')
 
         plt.legend()
-        # plt.grid()
-        # plt.show()
         plt.savefig(self.figure_log_path)
         plt.close()
 
@@ -166,5 +164,4 @@ class TextLoggerHook(LoggerHook):
         # print(log_dict)
         self._log_info(log_dict, runner)
         self._dump_log(log_dict, runner)
-        if eval(os.environ.get('SHOW', 'False')):
-            self._plot_log(log_dict, runner)
+        self._plot_log(log_dict, runner)

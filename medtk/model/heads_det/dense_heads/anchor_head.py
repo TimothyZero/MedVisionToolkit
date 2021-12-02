@@ -700,6 +700,7 @@ class AnchorHead(BaseDenseHead):
         import os
 
         from medtk.data.visulaize import getBBox2D
+        from medtk.data.io import ImageIO
 
         matplotlib.use('agg')
 
@@ -785,6 +786,21 @@ class AnchorHead(BaseDenseHead):
         plt.close(fig)
 
         if self.runner_data_meta['mode'] == 'valid':
+            ImageIO.saveArray(os.path.join(
+                result_dir,
+                f"Epoch{cur_epoch}_Iter{cur_iter}_{filename}_viewData.nii.gz"),
+                data['img'][0, [0]].detach().cpu().numpy()
+            )
+            for level in range(num_levels):
+                for scale in range(num_scales):
+                    lvl_data = mlvl_cls_out[level][0, [scale]].detach().cpu().numpy()
+                    ImageIO.saveArray(os.path.join(
+                        result_dir,
+                        f"Epoch{cur_epoch}_Iter{cur_iter}_{filename}_view_{level}-{scale}.nii.gz"),
+                        lvl_data,
+                        spacing=(img.shape[-1]/lvl_data.shape[-1], ) * dim
+                    )
+
             if not self.has_proposal():
                 img = data['img'][0, 0].detach().cpu().numpy() * 0.5 + 0.5
                 dim = img.ndim

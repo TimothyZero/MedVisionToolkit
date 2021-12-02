@@ -563,7 +563,6 @@ class Assigner(torch.nn.Module):
                 grid_overlaps = metrics['iou']
             else:
                 grid_overlaps = iouNd_pytorch(bboxes, gt_bboxes)  # num_bboxes, num_gts
-            grid_max_overlaps, grid_iou_argmax = grid_overlaps.max(dim=1)  # num_bboxes
             index_grid = torch.topk(- grid_overlaps, k=match_times, dim=0, largest=False)[1]  # [K, M]
 
             # 1. assign -1 to each bboxes

@@ -183,7 +183,7 @@ def parse_args():
     parser.add_argument('--fold', type=int, default=-1)
     parser.add_argument('--batch', type=int, default=0)
     parser.add_argument('--exclude', help='fold as exclude', action='store_true', default=False)
-    parser.add_argument('--epoch', type=int, default=10)
+    parser.add_argument('--epoch', type=str, default='10')
     parser.add_argument('--dataset', type=str, default='valid_infer')
     parser.add_argument('--rpn', help='infer using rpn', action='store_true', default=False)
     args = parser.parse_args()

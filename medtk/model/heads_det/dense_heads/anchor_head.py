@@ -46,6 +46,7 @@ class AnchorHead(BaseDenseHead):
                  nms: dict = None,
                  losses: dict = None,
                  metrics: Union[List[dict], List[object]] = None,
+                 best_metric: str = "lambda x: x['iou_recall']",
                  level_first: bool = False,
                  conv_cfg: dict = None,
                  norm_cfg: dict = None,
@@ -77,6 +78,7 @@ class AnchorHead(BaseDenseHead):
         self.criterion_cls = losses['cls']
         self.criterion_reg = losses['reg']
         self.metrics = nn.ModuleList([metric for metric in metrics])
+        self.best_metric = eval(best_metric)
         self._init_layers()
         self._init_weights()
 
@@ -855,6 +857,8 @@ class AnchorHead(BaseDenseHead):
         for metric in self.metrics:
             one_metric = metric(results, ground_truth)
             metrics.update(one_metric)
+        best = self.best_metric(metrics)
+        metrics['best'] = best
         return metrics
 
 

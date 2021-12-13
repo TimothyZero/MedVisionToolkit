@@ -13,7 +13,6 @@ class RepeatDataset:
         self.dataset = dataset
         self.pipeline = self.dataset.pipeline
         self.times = times
-        self._ori_len = len(self.dataset)
 
     def __repr__(self):
         repr_str = self.__class__.__name__ + '('
@@ -22,14 +21,21 @@ class RepeatDataset:
         return repr_str
 
     def __getitem__(self, idx):
-        return self.dataset[idx % self._ori_len]
+        _ori_len = len(self.dataset)
+        return self.dataset[idx % _ori_len]
 
     def __len__(self):
         """Length after repetition."""
-        return self.times * self._ori_len
+        return self.times * len(self.dataset)
 
     def setLatitude(self, val):
         self.dataset.pipeline.setLatitude(val)
 
     def getLatitude(self):
         return self.dataset.pipeline.getLatitude()
+
+    def __getattr__(self, item):
+        try:
+            return getattr(self, item)
+        except:
+            return getattr(self.dataset, item)

@@ -99,16 +99,11 @@ class SaveAnnotations(Stage):
 
     @staticmethod
     def _save_seg(result):
-        if not result['label_path']:
-            _ext = '.nii.gz' if result['img_dim'] == 3 else '.png'
-            t = list(os.path.split(result['image_path']))
-            t[-1] = t[-1] + '_seg' + _ext
-            result_path = '/'.join(t)
-        else:
-            _ext = osp.splitext(osp.basename(result['label_path']))[-1]
-            if _ext == '.gz':
-                _ext = '.nii.gz'
-            result_path = osp.join(result['label_path'] + "_seg" + _ext)
+        _ext = '.nii.gz' if result['img_dim'] == 3 else '.png'
+        t = list(os.path.split(result['image_path']))
+        t[-1] = t[-1] + '_seg' + _ext
+        result_path = '/'.join(t)
+
         if result.get('SaveFolder', None):
             result_path = osp.join(result['SaveFolder'], osp.basename(result_path))
         if 'gt_seg' not in result.keys():

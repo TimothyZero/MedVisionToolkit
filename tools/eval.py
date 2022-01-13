@@ -144,6 +144,90 @@ def det_infer_net_loader(net, dataloader, infer_patch_size=8, as_rpn=False):
         #     return
 
 
+def seg_infer_net_loader(net, dataloader, infer_patch_size=8):
+    net.eval()
+
+    t = tqdm(dataloader)
+    for i, data in enumerate(t):
+        tic = time.time()
+
+        batch_size = len(data['img_meta'])
+        for j in range(batch_size):
+            results = {'img_meta': data['img_meta'][j]}
+            for k, v in data.items():
+                if k != 'img_meta':
+                    results[k] = v[j]
+
+            img_key = 'img' if 'img' in data.keys() else 'patches_img'
+            filename = results['img_meta']['filename']
+
+            logger_dict = {}
+            logger_dict.update({'filename': filename})
+            t.set_postfix(logger_dict)
+
+            dim = results['img_meta']['img_dim']
+            if dim == 3:
+                ext = 'nii.gz'
+            else:
+                ext = 'png'
+
+            if 'patches_img' in results.keys():
+                t.set_description(f'inferring on {len(results[img_key])} patches ...')
+                for start in range(0, len(results[img_key]), infer_patch_size):
+                    with autocast():
+                        tensor_data = {'img': results[img_key][start: start + infer_patch_size].cuda(),
+                                       'img_meta': None}
+                        for k, v in results.items():
+                            if k not in ['patches_img', 'img_meta']:
+                                tensor_data[k.replace('patches_', '')] = v[start: start + infer_patch_size].cuda()
+
+                        with torch.no_grad():
+                            prediction, net_output = net.forward_infer(tensor_data)
+
+                    pred_seg = prediction.float()
+                    pred_seg = pred_seg.argmax(dim=1, keepdim=True)  # to float32, batch size != 1
+                    for inner_p, patch_pred_seg in enumerate(pred_seg):
+                        results['img_meta']['patches_pred_seg'][start + inner_p] = patch_pred_seg.cpu().numpy()
+                    torch.cuda.empty_cache()
+
+                logger_dict.update({'forward': time.time() - tic})
+                t.set_postfix(logger_dict)
+                results = reversed_pipeline(results)[0]
+                results = saver(results)
+                results['gt_seg'] = results['pred_seg']
+                # print(len(results['pred_det']))
+                # print(results['pred_det'])
+                logger_dict.update({'total': time.time() - tic})
+                t.set_postfix(logger_dict)
+            # else:
+            #     tensor_data = {'img':      torch.from_numpy(results['img']).unsqueeze(0).cuda(),
+            #                    'img_meta': None}
+            #     with torch.no_grad():
+            #         prediction, _ = model.forward_infer(tensor_data)
+            #     pred_bboxes = prediction.cpu().numpy()[0]
+            #     pred_bboxes = pred_bboxes[pred_bboxes[:, -1] != -1]
+            #     results['pred_det'] = pred_bboxes
+            #
+            #     results = monitor.result_pipeline(results)
+            #     results = saver(results)
+            #     results['gt_det'] = results['pred_det']
+            #     print(len(results['pred_det']))
+            #     print(results['pred_det'])
+            # v(results)
+        #         pred_results.append(results['pred_seg'])
+        #         ImageIO.saveArray(osp.join(monitor.result_dir, f"{filename}_{multi_idx}_pred_seg.{ext}"),
+        #                           results['pred_seg'], spacing=results['img_spacing'], origin=results['img_origin'])
+        #
+        # pred_results = merge_seg_pred(pred_results, method='mean')
+        # ImageIO.saveArray(osp.join(monitor.result_dir, f"{filename}_pred_seg.{ext}"),
+        #                   pred_results, spacing=results['img_spacing'], origin=results['img_origin'])
+        # ImageIO.saveArray(osp.join(monitor.result_dir, f"{filename}_img.{ext}"),
+        #                   results['img'], spacing=results['img_spacing'], origin=results['img_origin'])
+
+        # if i >= 0:
+        #     return
+
+
 def build_task(cfg):
     assert cfg.TASK in ('SEG', 'CLS', 'DET')
     if cfg.TASK.upper() == 'SEG':
@@ -192,11 +276,12 @@ def parse_args():
 
 if __name__ == '__main__':
     args = parse_args()
-    # args.config = 'projects/LUNA2016/configs/cfg_v1_one_v1.py'
-    # args.fold = 0
+    # args.config = 'projects/VESSEL12/configs/cfg_seg_VESSEL12_lung.py'
+    # # args.fold = 0
     # args.epoch = 150
     # args.dataset = 'infer'
     # # args.rpn = True
+    # args.batch = 1
     # os.chdir('../../MedVisionProjects')
 
     cfg = Config.fromfile(args.config)
@@ -248,14 +333,16 @@ if __name__ == '__main__':
         det_infer_net_loader(model, loader, 
                              infer_patch_size=cfg.data.imgs_per_gpu,
                              as_rpn=args.rpn)
-    # elif cfg.TASK == 'SEG':
-    #     saver = ForwardCompose([
-    #         SaveFolder(monitor.result_dir),
-    #         # SaveImageToFile(ext='same'),
-    #         # SaveImageToFile(ext='.nii.gz'),
-    #         SaveAnnotations(with_seg=True),
-    #     ])
-    #     print(saver)
-    #     seg_infer_net(model, dataset)
+    elif cfg.TASK == 'SEG':
+        reversed_pipeline = BackwardCompose(cfg.infer_pipeline[::-1])
+        saver = ForwardCompose([
+            SaveFolder(infer_results_dir),
+            # SaveImageToFile(ext='same'),
+            # SaveImageToFile(ext='.nii.gz'),
+            SaveAnnotations(with_seg=True),
+        ])
+        print(saver)
+        seg_infer_net_loader(model, loader,
+                             infer_patch_size=cfg.data.imgs_per_gpu)
 
     # infer_net_loader(model, loader, batch_processor)

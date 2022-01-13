@@ -98,11 +98,11 @@ class SimpleSegment(BaseTask):
         x_bk = self.backbone(img)
         if self.with_neck:
             x_nk = self.neck(x_bk.copy())
-            net_output = self.head(x_bk, x_nk)
+            net_output = self.head(x_nk, x_bk)
         else:
             net_output = self.head(None, x_bk)
 
-        prediction = net_output[0].softmax(dim=1)[:, 1:]
+        prediction = net_output[0]
         return prediction, net_output
 
     def loss(self, data_batch: dict, net_output: list) -> dict:

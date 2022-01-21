@@ -207,11 +207,11 @@ class Encoder(ComponentModule):
         -
     """
     LAYERS = {
-        'conv':     (ConvLayer, 1),  # UNet, VNet
-        'v_conv':   (VResConvLayer, 1),  # VBNet
-        'res':      (ResidualLayer, 1),  # ResNet 18, 34
-        'b_res':    (ResidualBottleneckLayer, 4),  # ResNet or ResNeXt ge than 50
-        'se_res':   (SEResidualLayer, 1),  # SEResNet 18, 34
+        'conv': (ConvLayer, 1),  # UNet, VNet
+        'v_conv': (VResConvLayer, 1),  # VBNet
+        'res': (ResidualLayer, 1),  # ResNet 18, 34
+        'b_res': (ResidualBottleneckLayer, 4),  # ResNet or ResNeXt ge than 50
+        'se_res': (SEResidualLayer, 1),  # SEResNet 18, 34
         'se_b_res': (SEResidualBottleneckLayer, 4),
     }
 
@@ -327,19 +327,21 @@ if __name__ == "__main__":
 
     init_seed(666)
 
-    # ResNet18 = Encoder(
-    #     dim=2,
-    #     in_channels=3,
-    #     features=(64, 128, 256, 512),
-    #     strides=(1, 2, 2, 2),
-    #     dilations=(1, 1, 1, 1),
-    #     num_blocks=(2, 2, 2, 2),
-    #     out_indices=(0, 1, 2, 3),
-    #     first_conv=(64, 7, 2),
-    #     layer_type='res',
-    #     downsample=True
-    # )
-    # load_checkpoint(ResNet18, 'https://download.pytorch.org/models/resnet18-5c106cde.pth')
+    ResNet18 = Encoder(
+        dim=2,
+        in_channels=3,
+        features=(64, 128, 256, 512),
+        strides=(1, 2, 2, 2),
+        dilations=(1, 1, 1, 1),
+        num_blocks=(2, 2, 2, 2),
+        out_indices=(0, 1, 2, 3),
+        first_conv=(64, 7, 2),
+        layer_cfg=dict(
+            type='res',
+        ),
+        downsample=True
+    )
+    load_checkpoint(ResNet18, 'https://download.pytorch.org/models/resnet18-5c106cde.pth')
     #
     # ResNet34 = Encoder(
     #     dim=2,
@@ -350,7 +352,9 @@ if __name__ == "__main__":
     #     num_blocks=(3, 4, 6, 3),
     #     out_indices=(0, 1, 2, 3),
     #     first_conv=(64, 7, 2),
-    #     layer_type='res',
+    #     layer_cfg=dict(
+    #         type='res',
+    #     ),
     #     downsample=True
     # )
     # load_checkpoint(ResNet34, 'https://download.pytorch.org/models/resnet34-333f7ec4.pth')
@@ -364,7 +368,9 @@ if __name__ == "__main__":
     #     num_blocks=(3, 4, 6, 3),
     #     out_indices=(0, 1, 2, 3),
     #     first_conv=(64, 7, 2),
-    #     layer_type='b_res',
+    #     layer_cfg=dict(
+    #         type='b_res',
+    #     ),
     #     downsample=True
     # )
     # load_checkpoint(ResNet50, 'https://download.pytorch.org/models/resnet50-19c8e357.pth')
@@ -380,11 +386,13 @@ if __name__ == "__main__":
     #     groups=32,
     #     width_per_group=4,
     #     first_conv=(64, 7, 2),
-    #     layer_type='b_res',
+    #     layer_cfg=dict(
+    #         type='b_res',
+    #     ),
     #     downsample=True
     # )
     # load_checkpoint(ResNeXt50_32x4, 'https://download.pytorch.org/models/resnext50_32x4d-7cdf4587.pth')
-
+    #
     # SEResNet50 = Encoder(
     #     dim=2,
     #     in_channels=3,
@@ -394,11 +402,13 @@ if __name__ == "__main__":
     #     num_blocks=(3, 4, 6, 3),
     #     out_indices=(0, 1, 2, 3),
     #     first_conv=(64, 7, 2),
-    #     layer_type='se_b_res',
+    #     layer_cfg=dict(
+    #         type='se_b_res',
+    #     ),
     #     downsample=True
     # )
     # load_checkpoint(SEResNet50, 'http://data.lip6.fr/cadene/pretrainedmodels/se_resnet50-ce0d4300.pth')
-
+    #
     # UNet = Encoder(
     #     dim=2,
     #     in_channels=3,
@@ -407,10 +417,12 @@ if __name__ == "__main__":
     #     dilations=(1, 1, 1, 1),
     #     num_blocks=(1, 1, 1, 1),
     #     out_indices=(0, 1, 2, 3),
-    #     layer_type='conv'
+    #     layer_cfg=dict(
+    #         type='conv',
+    #     )
     # )
     # model = UNet
-
+    #
     # VNet = Encoder(
     #     dim=2,
     #     in_channels=3,
@@ -419,10 +431,12 @@ if __name__ == "__main__":
     #     dilations=(1, 1, 1, 1),
     #     num_blocks=(1, 2, 3, 4),
     #     out_indices=(0, 1, 2, 3),
-    #     layer_type='v_conv'
+    #     layer_cfg=dict(
+    #         type='v_conv',
+    #     )
     # )
     # model = VNet
-
+    #
     # TVNet = Encoder(
     #     dim=2,
     #     in_channels=3,
@@ -431,46 +445,39 @@ if __name__ == "__main__":
     #     dilations=(1, 1, 1, 1),
     #     num_blocks=(2, 2, 2, 2),
     #     out_indices=(0, 1, 2, 3),
-    #     layer_type='v_conv'
+    #     layer_cfg=dict(
+    #         type='res',
+    #     ),
     # )
     # model = TVNet
-
-    DeeplungResNet18 = Encoder(
-        dim=3,
-        in_channels=1,
-        features=(32, 64, 64, 64),
-        strides=(1, 2, 2, 2),
-        dilations=(1, 1, 1, 1),
-        num_blocks=(2, 2, 3, 3),
-        out_indices=(0, 1, 2, 3),
-        first_conv=(24, 7, 2),
-        layer_cfg=dict(
-            type='res',
-        )
-        # groups=32,
-        # width_per_group=4,
-    )
-    model = DeeplungResNet18
-
-    # ResNet18 = Encoder(
+    #
+    # DeeplungResNet18 = Encoder(
     #     dim=3,
     #     in_channels=1,
-    #     features=(16, 32, 64, 128),
+    #     features=(32, 64, 64, 64),
     #     strides=(1, 2, 2, 2),
     #     dilations=(1, 1, 1, 1),
-    #     num_blocks=(2, 2, 2, 2),
+    #     num_blocks=(2, 2, 3, 3),
     #     out_indices=(0, 1, 2, 3),
-    #     first_conv=(64, 7, 2),
-    #     layer_type='res',
-    #     downsample=True
+    #     first_conv=(24, 7, 2),
+    #     layer_cfg=dict(
+    #         type='res',
+    #     )
+    #     # groups=32,
+    #     # width_per_group=4,
     # )
-    # model = ResNet18
+    # model = DeeplungResNet18
+
+    model = ResNet18
 
     print(model)
 
     model.print_model_params()
-    data = torch.ones((1, 1, 96, 96, 96))
+    if model.dim == 3:
+        data = torch.ones((1, 1, 96, 96, 96))
+    else:
+        data = torch.ones((1, 3, 224, 224))
     outs = model(data)
     for o in outs:
         print(o.shape)
-        # print(torch.sum(o))
+        print(torch.sum(o))

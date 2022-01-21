@@ -27,23 +27,23 @@ class ResNet(ComponentModule):
                  conv_cfg=None,
                  norm_cfg=None,
                  act_cfg=None,
-                 stages_with_dcn=None,
+                 stages_with_dcn=[False, False, False, False],
                  dcn_cfg=None):
         if depth not in [18, 34, 50, 101, 152]:
             raise KeyError('invalid depth {} for resnet'.format(depth))
         # print("ResNet Model Init")
         self.arch_settings = {
-            18:  (BasicBlockNd, (2, 2, 2, 2)),
-            34:  (BasicBlockNd, (3, 4, 6, 3)),
-            50:  (BottleneckNd, (3, 4, 6, 3)),
+            18: (BasicBlockNd, (2, 2, 2, 2)),
+            34: (BasicBlockNd, (3, 4, 6, 3)),
+            50: (BottleneckNd, (3, 4, 6, 3)),
             101: (BottleneckNd, (3, 4, 23, 3)),
             152: (BottleneckNd, (3, 8, 36, 3))
         }
 
         self.model_urls = {
-            18:  'https://download.pytorch.org/models/resnet18-5c106cde.pth',
-            34:  'https://download.pytorch.org/models/resnet34-333f7ec4.pth',
-            50:  'https://download.pytorch.org/models/resnet50-19c8e357.pth',
+            18: 'https://download.pytorch.org/models/resnet18-5c106cde.pth',
+            34: 'https://download.pytorch.org/models/resnet34-333f7ec4.pth',
+            50: 'https://download.pytorch.org/models/resnet50-19c8e357.pth',
             101: 'https://download.pytorch.org/models/resnet101-5d3b4d8f.pth',
             152: 'https://download.pytorch.org/models/resnet152-b121ed2d.pth',
         }
@@ -100,13 +100,13 @@ class ResNet(ComponentModule):
         # print(self)
 
     def _make_layer(self, block, in_planes, planes, num_blocks, stride, dilation, dcn_cfg=None):
-        downsample = None
-        if stride != 1 or in_planes != planes * block.expansion:
-            downsample = nn.Sequential(
-                self.build_conv(self.dim, in_planes, planes * block.expansion,
-                                kernel_size=1, stride=stride, bias=False),
-                self.build_norm(self.dim, planes * block.expansion),
-            )
+        # downsample = None
+        # if stride != 1 or in_planes != planes * block.expansion:
+        #     downsample = nn.Sequential(
+        #         self.build_conv(self.dim, in_planes, planes * block.expansion,
+        #                         kernel_size=1, stride=stride, bias=False),
+        #         self.build_norm(self.dim, planes * block.expansion),
+        #     )
 
         layers = []
         layers.append(
@@ -116,7 +116,6 @@ class ResNet(ComponentModule):
                 planes=planes,
                 stride=stride,
                 dilation=dilation,
-                downsample=downsample,
                 groups=self.groups,
                 width_per_group=self.width_per_group,
                 conv_cfg=dcn_cfg,
@@ -206,29 +205,34 @@ if __name__ == '__main__':
 
     init_seed(666)
 
-    r = ResNet(2, 50, downsample=4, in_channels=3,
-               norm_cfg=dict(
-                   type='InstanceNorm',
-                   eps=1e-05,
-                   momentum=0.1,
-                   affine=True),
-               stages_with_dcn=[True, True, True, False],
-               dcn_cfg=dict(
-                   type='DCNv1',
-                   groups=1,
-                   deformable_groups=1
+    r = ResNet(dim=2,
+               depth=18,
+               downsample=4,
+               # in_channels=3,
+               # norm_cfg=dict(
+               #     type='InstanceNorm',
+               #     eps=1e-05,
+               #     momentum=0.1,
+               #     affine=True),
+               # stages_with_dcn=[True, True, True, False],
+               # dcn_cfg=dict(
+               #     type='DCNv1',
+               #     groups=1,
+               #     deformable_groups=1
+               # )
                )
-               )
+    load_checkpoint(r, 'https://download.pytorch.org/models/resnet18-5c106cde.pth')
+    # load_checkpoint(r, 'https://download.pytorch.org/models/resnet34-333f7ec4.pth')
+    # load_checkpoint(r, 'https://download.pytorch.org/models/resnet50-19c8e357.pth')
     print(r)
 
-    # r.print_model_params()
-    # data = torch.ones((1, 3, 128, 128))
-    # outs = r(data)
-    # for o in outs:
-    #     print(o.shape)
-    #     print(torch.sum(o))
+    r.print_model_params()
+    data = torch.ones((1, 3, 224, 224))
+    outs = r(data)
+    for o in outs:
+        print(o.shape)
+        print(torch.sum(o))
 
     # from medtk.runner.checkpoint import load_checkpoint
 
-    # load_checkpoint(r, 'https://download.pytorch.org/models/resnet18-5c106cde.pth')
-    # load_checkpoint(r, 'https://download.pytorch.org/models/resnet50-19c8e357.pth')
+

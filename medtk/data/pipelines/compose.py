@@ -1,5 +1,6 @@
 import collections
 import random
+import numpy as np
 import traceback
 
 from .viewer import Display
@@ -8,7 +9,7 @@ d = Display()
 
 
 class OneOf(object):
-    def __init__(self, transforms):
+    def __init__(self, transforms, p=None):
         assert isinstance(transforms, collections.abc.Sequence)
         self.latitude = 1.0
         self.transforms = []
@@ -19,6 +20,11 @@ class OneOf(object):
                 self.transforms.append(transform)
             else:
                 raise TypeError('transform must be callable or a dict')
+        if not p:
+            self.p = [1] * len(self.transforms)
+        else:
+            self.p = p
+            assert len(p) == len(transforms), 'transforms and p not matched!'
 
     @property
     def canBackward(self):
@@ -35,7 +41,7 @@ class OneOf(object):
 
     def __call__(self, result, forward=True):
         if forward:
-            t = random.choice(self.transforms)
+            t = np.random.choice(self.transforms, 1, p=self.p)
         else:
             name = result[0]['history'][-1]
             t = [tt for tt in self.transforms if name in tt.name][0]

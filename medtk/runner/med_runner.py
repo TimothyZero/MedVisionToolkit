@@ -310,6 +310,8 @@ class MedRunner(object):
                     with torch.no_grad():
                         outputs, prediction, net_output = self.model(data_batch, False, self.optimizer)
             except Exception as e:
+                self.logger.info(f'Error in valid iter {i}')
+                self.logger.info(data_batch['img'].is_contiguous())
                 traceback.print_exc()
                 continue
 

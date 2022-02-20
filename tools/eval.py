@@ -60,7 +60,7 @@ def det_infer_net_loader(net, dataloader, infer_patch_size=8, as_rpn=False):
             filename = results['img_meta']['filename']
 
             logger_dict = {}
-            logger_dict.update({'filename': filename})
+            # logger_dict.update({'filename': filename})
             t.set_postfix(logger_dict)
 
             dim = results['img_meta']['img_dim']

@@ -61,7 +61,7 @@ def det_infer_net_loader(net, dataloader, infer_patch_size=8, as_rpn=False):
 
             logger_dict = {}
             # logger_dict.update({'filename': filename})
-            t.set_postfix(logger_dict)
+            # t.set_postfix(logger_dict)
 
             dim = results['img_meta']['img_dim']
             if dim == 3:

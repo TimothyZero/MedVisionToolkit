@@ -21,10 +21,10 @@ class OneOf(object):
             else:
                 raise TypeError('transform must be callable or a dict')
         if not p:
-            self.p = [1] * len(self.transforms)
+            p = [1] * len(self.transforms)
         else:
-            self.p = p
             assert len(p) == len(transforms), 'transforms and p not matched!'
+        self.p = tuple(np.array(p) / sum(p))
 
     @property
     def canBackward(self):
@@ -41,7 +41,8 @@ class OneOf(object):
 
     def __call__(self, result, forward=True):
         if forward:
-            t = np.random.choice(self.transforms, 1, p=self.p)
+            idx = np.random.choice(len(self.transforms), 1, p=self.p)[0]
+            t = self.transforms[idx]
         else:
             name = result[0]['history'][-1]
             t = [tt for tt in self.transforms if name in tt.name][0]

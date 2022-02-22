@@ -53,6 +53,19 @@ class BasicPairDataset(Dataset):
     def __len__(self):
         return len(self.pairs)
 
+    def set_fold(self, fold):
+        self.set_include_fold(fold)
+
+    def set_include_fold(self, fold):
+        folds = [p.get('fold', 0) for p in self.pairs]
+        _indices = np.where(np.array(folds) == fold)[0]
+        self.pairs = [self.pairs[i] for i in _indices]
+
+    def set_exclude_fold(self, fold):
+        folds = [p.get('fold', 0) for p in self.pairs]
+        _indices = np.where(np.array(folds) != fold)[0]
+        self.pairs = [self.pairs[i] for i in _indices]
+
     def __getitem__(self, i):
         pair = deepcopy(self.pairs[i])
         image_file = os.path.join(self.image_prefix, pair.pop('image')).replace("\\", '/')

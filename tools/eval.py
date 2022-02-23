@@ -276,10 +276,10 @@ def parse_args():
 
 if __name__ == '__main__':
     args = parse_args()
-    # args.config = 'projects/VESSEL12/configs/cfg_seg_VESSEL12_lung.py'
-    # # args.fold = 0
-    # args.epoch = 150
-    # args.dataset = 'infer'
+    # args.config = 'projects/LUNA2016/configs/cfg_v3_one_v5.py'
+    # args.fold = 0
+    # args.epoch = 86
+    # args.dataset = 'valid_infer'
     # # args.rpn = True
     # args.batch = 1
     # os.chdir('../../MedVisionProjects')

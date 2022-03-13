@@ -61,7 +61,8 @@ class UNetEncoder(ComponentModule):
                  in_channels: int,
                  base_width=16,
                  stages=5,
-                 out_indices=(0, 1, 2, 3, 4)):
+                 out_indices=(0, 1, 2, 3, 4),
+                 bilinear=True):
         super(UNetEncoder, self).__init__()
         assert isinstance(out_indices, (list, tuple)), \
             'out_indices must be a list/tuple but get a {}'.format(type(out_indices))
@@ -71,6 +72,7 @@ class UNetEncoder(ComponentModule):
         self.out_indices = out_indices
         self.base_width = base_width
         self.stages = stages
+        self.bilinear = bilinear
 
         self.in_block, self.downs = self.init_layers()
         self.init_weights()
@@ -84,7 +86,7 @@ class UNetEncoder(ComponentModule):
             # in planes  : 64 -> 128 -> 256 -> 512
             # out planes : 128 -> 256 -> 512 -> 1024
             planes = self.base_width * pow(2, i)
-            downs.append(Down(self.dim, planes, planes * 2))
+            downs.append(Down(self.dim, planes, planes * 2, conv_pool=not self.bilinear))
 
         downs = nn.ModuleList(downs)
         return in_block, downs

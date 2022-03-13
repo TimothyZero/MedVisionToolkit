@@ -49,6 +49,8 @@ def to_numpy(data):
     :class:`Sequence`, :class:`int` and :class:`float`.
     """
     if isinstance(data, torch.Tensor):
+        if data.is_cuda:
+            data = data.cpu()
         return data.numpy()
     elif isinstance(data, np.ndarray):
         return data

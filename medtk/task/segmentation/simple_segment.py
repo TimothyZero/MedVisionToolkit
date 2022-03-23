@@ -61,7 +61,7 @@ class SimpleSegment(BaseTask):
             del x_bk
             del x_nk
         else:
-            net_output = self.head(None, x_bk)
+            net_output = self.head(x_bk, x_bk)
             del x_bk
 
         losses = self.loss(data_batch, net_output)

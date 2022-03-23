@@ -318,8 +318,8 @@ class PassThrough(nn.Module):
         self.metrics = nn.ModuleList(metrics)
         self.base_criterion = CrossEntropyLoss()
 
-    def forward(self, x):
-        return x
+    def forward(self, x_nk, x_bk=None):
+        return x_nk
 
     @staticmethod
     def to_results(outs):

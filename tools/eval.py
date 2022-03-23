@@ -293,6 +293,8 @@ if __name__ == '__main__':
     if args.batch > 0:
         cfg.data.imgs_per_gpu = args.batch
     checkpoint = cfg.work_dir + f'/epoch_{args.epoch}.pth'
+    assert os.path.exists(checkpoint)
+
     if args.rpn:
         infer_results_dir = osp.join(cfg.work_dir, f'{args.dataset}_results_{args.epoch}ep_rpn')
     else:

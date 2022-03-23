@@ -92,7 +92,7 @@ class FasterRCNN(BaseTask):
             batch_proposals, batch_anchor_id, net_output = self.rpn_head.forward_infer(feats)
             batch_bboxes, batch_anchor_id = self.roi_head.forward_infer(feats, batch_proposals, batch_anchor_id)
         else:
-            print('rpn')
+            # print('rpn')
             self.rpn_head.nms = dict(
                 nms_pre=1000,
                 min_bbox_size=0,

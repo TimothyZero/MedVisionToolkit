@@ -96,7 +96,7 @@ class BaseSegHead(ComponentModule):
 
         matplotlib.use('agg')
 
-        cur_epoch = self.runner_data['epoch']
+        cur_epoch = self.runner_data['epoch'] + 1
         filename = self.runner_data['img_meta'][0]['filename']
         cur_iter = self.runner_data['iter']
         result_dir = self.runner_data_meta['result_dir']

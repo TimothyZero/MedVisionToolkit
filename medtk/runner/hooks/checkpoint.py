@@ -13,6 +13,7 @@ class CheckpointHook(Hook):
                  save_latest=True,
                  save_best=True,
                  latest_optimizer=True,
+                 start_from=0,
                  **kwargs):
         self.interval = interval
         self.save_optimizer = save_optimizer
@@ -20,6 +21,7 @@ class CheckpointHook(Hook):
         self.save_latest = save_latest
         self.save_best = save_best
         self.latest_optimizer = latest_optimizer
+        self.start_from = start_from
         self.args = kwargs
         self.pre_best = 0
         self.iter_best_metric = []
@@ -36,9 +38,9 @@ class CheckpointHook(Hook):
 
         if not self.every_n_epochs(runner, self.interval):
             return
-
-        runner.save_checkpoint(
-            self.out_dir, save_optimizer=self.save_optimizer, **self.args)
+        if runner.epoch + 1 >= self.start_from:
+            runner.save_checkpoint(
+                self.out_dir, save_optimizer=self.save_optimizer, **self.args)
 
     def after_val_iter(self, runner):
         self.iter_best_metric.append(runner.outputs['log_vars'].get('best', -1))

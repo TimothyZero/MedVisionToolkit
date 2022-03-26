@@ -132,7 +132,7 @@ def _minimal_ext_cmd(cmd):
     return out
 
 
-def get_git_hash(fallback='unknown', digits=None):
+def get_git_hash(fallback='unknown', digits=None, package='medtk'):
     """Get the git hash of the current repo.
 
     Args:
@@ -140,6 +140,7 @@ def get_git_hash(fallback='unknown', digits=None):
             unavailable. Defaults to 'unknown'.
         digits (int, optional): kept digits of the hash. Defaults to None,
             meaning all digits are kept.
+        package: package to find
 
     Returns:
         str: Git commit hash.
@@ -149,7 +150,14 @@ def get_git_hash(fallback='unknown', digits=None):
         raise TypeError('digits must be None or an integer')
 
     cwd = os.getcwd()
-    os.chdir(find_vcs_root(__file__))
+    try:
+        import importlib
+        os.chdir(find_vcs_root(importlib.__import__(package).__file__))
+    except ModuleNotFoundError:
+        print(f'Module {package} not found!')
+        os.chdir(cwd)
+        return None
+
     try:
         out = _minimal_ext_cmd(['git', 'rev-parse', 'HEAD'])
         sha = out.strip().decode('ascii')

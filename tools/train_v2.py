@@ -120,7 +120,8 @@ def worker(args):
 
     shutil.copy(cfg.filename, osp.join(cfg.work_dir, timestamp + "_" + osp.basename(cfg.filename)))
 
-    logger.debug(f'Git Version: {get_git_hash()}')
+    logger.info(f'Git Version (MedVisionToolkit): {get_git_hash()}')
+    logger.info(f'Git Version (MedVision): {get_git_hash(package="medvision")}')
     logger.debug(f'Current PID: {os.getpid()}')
     logger.debug(f'Config:\n{cfg.pretty_text}')
     logger.debug(f'Model:\n{cfg.model}')
